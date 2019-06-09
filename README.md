@@ -3,23 +3,25 @@ Note: this file is auto converted from posframe.el by [el2org](https://github.co
 
 # &#30446;&#24405;
 
-1.  [Posframe README](#org3c803d7)
-    1.  [What is posframe](#orge01c383)
-    2.  [Installation](#org0e86f77)
-    3.  [Usage](#orged3f863)
-        1.  [Create a posframe](#org675e151)
-        2.  [Hide a posframe](#orgb91d9ff)
-        3.  [Hide all posframes](#org9ad2afb)
-        4.  [Delete a posframe](#org62bd3a2)
-        5.  [Delete all posframes](#org10ff130)
+1.  [Posframe README](#org39f1199)
+    1.  [What is posframe](#org75ffb09)
+    2.  [Installation](#org24e4d5a)
+    3.  [Usage](#org13172eb)
+        1.  [Create a posframe](#org71b175a)
+        2.  [Hide a posframe](#orgd63c00f)
+        3.  [Hide all posframes](#orge4e5227)
+        4.  [Delete a posframe](#orga7363c0)
+        5.  [Delete all posframes](#org58e322a)
+        6.  [Customizing pointer control](#orge28a877)
+        7.  [Set fallback argument of posframe-show](#org4610750)
 
 
-<a id="org3c803d7"></a>
+<a id="org39f1199"></a>
 
 # Posframe README
 
 
-<a id="orge01c383"></a>
+<a id="org75ffb09"></a>
 
 ## What is posframe
 
@@ -36,19 +38,19 @@ NOTE: For MacOS users, posframe need Emacs (version >= 26.0.91)
 ![img](./snapshots/posframe-1.png)
 
 
-<a id="org0e86f77"></a>
+<a id="org24e4d5a"></a>
 
 ## Installation
 
     (require 'posframe)
 
 
-<a id="orged3f863"></a>
+<a id="org13172eb"></a>
 
 ## Usage
 
 
-<a id="org675e151"></a>
+<a id="org71b175a"></a>
 
 ### Create a posframe
 
@@ -76,21 +78,21 @@ NOTE: For MacOS users, posframe need Emacs (version >= 26.0.91)
         C-h f posframe-show
 
 
-<a id="orgb91d9ff"></a>
+<a id="orgd63c00f"></a>
 
 ### Hide a posframe
 
     (posframe-hide " *my-posframe-buffer*")
 
 
-<a id="org9ad2afb"></a>
+<a id="orge4e5227"></a>
 
 ### Hide all posframes
 
     M-x posframe-hide-all
 
 
-<a id="org62bd3a2"></a>
+<a id="orga7363c0"></a>
 
 ### Delete a posframe
 
@@ -102,7 +104,7 @@ NOTE: For MacOS users, posframe need Emacs (version >= 26.0.91)
         (posframe-delete-frame " *my-posframe-buffer*")
 
 
-<a id="org10ff130"></a>
+<a id="org58e322a"></a>
 
 ### Delete all posframes
 
@@ -111,4 +113,29 @@ NOTE: For MacOS users, posframe need Emacs (version >= 26.0.91)
 Note: this command will delete all posframe buffers,
 suggest not run this command if you are sharing a buffer
 between posframe and other packages.
+
+
+<a id="orge28a877"></a>
+
+### Customizing pointer control
+
+By default, posframe moves the pointer to point (0,0) in
+the frame, as a way to address an issue with mouse focus.
+To disable this feature, add this to your init.el:
+
+    (setq posframe-mouse-banish nil)
+
+
+<a id="org4610750"></a>
+
+### Set fallback argument of posframe-show
+
+user can set fallback values of posframe-show's arguments with the
+help of \`posframe-arghandler'. the below example set fallback
+border-width to 10 and fallback background color to green.
+
+    (setq posframe-arghandler #'my-posframe-arghandler)
+    (defun my-posframe-arghandler (posframe-buffer arg-name value)
+      (let ((info '(:internal-border-width 10 :background-color "green")))
+        (or (plist-get info arg-name) value)))
 
