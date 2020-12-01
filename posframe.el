@@ -422,10 +422,10 @@ position.  Its argument is a plist of the following form:
    :parent-window xxx
    :parent-window-width  xxx
    :parent-window-height xxx
-   :minibuffer-height
-   :mode-line-height
-   :header-line-height
-   :tab-line-height
+   :minibuffer-height xxx
+   :mode-line-height  xxx
+   :header-line-height xxx
+   :tab-line-height xxx
    :x-pixel-offset xxx
    :y-pixel-offset xxx)
 
@@ -685,7 +685,9 @@ posframe from catching keyboard input if the window manager selects it."
              (frame-parameter (selected-frame) 'no-accept-focus))
     (redirect-frame-focus posframe--frame (frame-parent))))
 
-(add-hook 'focus-in-hook #'posframe--redirect-posframe-focus)
+(if (version< emacs-version "27.1")
+    (add-hook 'focus-in-hook #'posframe--redirect-posframe-focus)
+  (add-function :after after-focus-change-function #'posframe--redirect-posframe-focus))
 
 (defun posframe--mouse-banish (parent-frame &optional posframe)
   "Banish mouse to the (0 . 0) of PARENT-FRAME.
