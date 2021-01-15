@@ -5,7 +5,7 @@
 ;; Author: Feng Shu <tumashu@163.com>
 ;; Maintainer: Feng Shu <tumashu@163.com>
 ;; URL: https://github.com/tumashu/posframe
-;; Version: 0.8.3
+;; Version: 0.8.4
 ;; Keywords: convenience, tooltip
 ;; Package-Requires: ((emacs "26"))
 
@@ -141,7 +141,8 @@
 ;; 3. [[https://github.com/tumashu/pyim][pyim]]
 ;; 4. [[https://github.com/tumashu/ivy-posframe][ivy-posframe]]
 ;; 5. [[https://github.com/tumashu/company-posframe][company-posframe]]
-;; 6. ...
+;; 6. [[https://github.com/randomwangran/org-marginalia-posframe][org-marginalia-posframe]]
+;; 7. ...
 
 ;;; Code:
 ;; * posframe's code                         :CODE:
@@ -719,8 +720,13 @@ will be removed."
 (defun posframe--fit-frame-to-buffer (posframe height min-height width min-width)
   ;; This only has effect if the user set the latter var to `hide'.
   (let ((x-gtk-resize-child-frames posframe-gtk-resize-child-frames))
-    (fit-frame-to-buffer
-     posframe height min-height width min-width)))
+    ;; More info: Don't skip empty lines when fitting mini frame to buffer (Bug#44080)
+    ;; http://git.savannah.gnu.org/cgit/emacs.git/commit/?id=e0de9f3295b4c46cb7198ec0b9634809d7b7a36d
+    (if (version< emacs-version "27.2")
+        (fit-frame-to-buffer
+         posframe height min-height width min-width)
+      (fit-frame-to-buffer-1
+       posframe height min-height width min-width nil nil nil))))
 
 (defun posframe--set-frame-size (posframe height min-height width min-width)
   "Set POSFRAME's size.
