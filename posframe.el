@@ -245,6 +245,8 @@ effect.")
                                      background-color
                                      left-fringe
                                      right-fringe
+                                     border-width
+                                     border-color
                                      internal-border-width
                                      internal-border-color
                                      font
@@ -258,7 +260,10 @@ effect.")
 This posframe's buffer is BUFFER-OR-NAME."
   (let ((left-fringe (or left-fringe 0))
         (right-fringe (or right-fringe 0))
-        (internal-border-width (or internal-border-width 0))
+        ;; See emacs.git:  Add distinct controls for child frames' borders (Bug#45620)
+        ;; http://git.savannah.gnu.org/cgit/emacs.git/commit/?id=ff7b1a133bfa7f2614650f8551824ffaef13fadc
+        (border-width (or border-width internal-border-width 0))
+        (border-color (or border-color internal-border-color))
         (buffer (get-buffer-create buffer-or-name))
         (after-make-frame-functions nil)
         (x-gtk-resize-child-frames posframe-gtk-resize-child-frames)
@@ -267,6 +272,7 @@ This posframe's buffer is BUFFER-OR-NAME."
                     background-color
                     right-fringe
                     left-fringe
+                    border-width
                     internal-border-width
                     font
                     keep-ratio
@@ -326,7 +332,8 @@ This posframe's buffer is BUFFER-OR-NAME."
                        (min-width  . 0)
                        (min-height . 0)
                        (border-width . 0)
-                       (internal-border-width . ,internal-border-width)
+                       (internal-border-width . ,border-width)
+                       (child-frame-border-width . ,border-width)
                        (vertical-scroll-bars . nil)
                        (horizontal-scroll-bars . nil)
                        (left-fringe . ,left-fringe)
@@ -347,9 +354,9 @@ This posframe's buffer is BUFFER-OR-NAME."
                        (inhibit-double-buffering . ,posframe-inhibit-double-buffering)
                        ;; Do not save child-frame when use desktop.el
                        (desktop-dont-save . t))))
-        (when internal-border-color
-          (set-face-background 'internal-border
-                               internal-border-color posframe--frame))
+        (when border-color
+          (set-face-background 'internal-border border-color posframe--frame)
+          (set-face-background 'child-frame-border border-color posframe--frame))
         (let ((posframe-window (frame-root-window posframe--frame)))
           ;; This method is more stable than 'setq mode/header-line-format nil'
           (unless respect-mode-line
@@ -378,6 +385,8 @@ This posframe's buffer is BUFFER-OR-NAME."
                          y-pixel-offset
                          left-fringe
                          right-fringe
+                         border-width
+                         border-color
                          internal-border-width
                          internal-border-color
                          font
@@ -451,6 +460,7 @@ The builtin poshandler functions are listed below:
 15. `posframe-poshandler-point-top-left-corner'
 16. `posframe-poshandler-point-bottom-left-corner'
 17. `posframe-poshandler-point-bottom-left-corner-upward'
+18. `posframe-poshandler-point-window-center'
 
 This posframe's buffer is BUFFER-OR-NAME, which can be a buffer
 or a name of a (possibly nonexistent) buffer.
@@ -468,9 +478,15 @@ If LEFT-FRINGE or RIGHT-FRINGE is a number, left fringe or
 right fringe with be shown with the specified width.
 
 By default, posframe shows no borders, but users can specify
-borders by setting INTERNAL-BORDER-WIDTH to a positive number.
-Border color can be specified by INTERNAL-BORDER-COLOR
-or via the ‘internal-border’ face.
+borders by setting BORDER-WIDTH to a positive number.  Border
+color can be specified by BORDER-COLOR.
+
+INTERNAL-BORDER-WIDTH and INTERNAL-BORDER-COLOR are same as
+BORDER-WIDTH and INTERNAL-BORDER-COLOR, but do not suggest to use
+for the reason:
+
+   Add distinct controls for child frames' borders (Bug#45620)
+   http://git.savannah.gnu.org/cgit/emacs.git/commit/?id=ff7b1a133bfa7f2614650f8551824ffaef13fadc
 
 Posframe's font as well as foreground and background colors are
 derived from the current frame by default, but can be overridden
@@ -524,6 +540,8 @@ You can use `posframe-delete-all' to delete all posframes."
          (y-pixel-offset (or (funcall posframe-arghandler buffer-or-name :y-pixel-offset y-pixel-offset) 0))
          (left-fringe (funcall posframe-arghandler buffer-or-name :left-fringe left-fringe))
          (right-fringe (funcall posframe-arghandler buffer-or-name :right-fringe right-fringe))
+         (border-width (funcall posframe-arghandler buffer-or-name :border-width border-width))
+         (border-color (funcall posframe-arghandler buffer-or-name :border-color border-color))
          (internal-border-width (funcall posframe-arghandler buffer-or-name :internal-border-width internal-border-width))
          (internal-border-color (funcall posframe-arghandler buffer-or-name :internal-border-color internal-border-color))
          (font (funcall posframe-arghandler buffer-or-name :font font))
@@ -583,6 +601,8 @@ You can use `posframe-delete-all' to delete all posframes."
              :parent-frame parent-frame
              :left-fringe left-fringe
              :right-fringe right-fringe
+             :border-width border-width
+             :border-color border-color
              :internal-border-width internal-border-width
              :internal-border-color internal-border-color
              :foreground-color foreground-color
@@ -722,11 +742,11 @@ will be removed."
   (let ((x-gtk-resize-child-frames posframe-gtk-resize-child-frames))
     ;; More info: Don't skip empty lines when fitting mini frame to buffer (Bug#44080)
     ;; http://git.savannah.gnu.org/cgit/emacs.git/commit/?id=e0de9f3295b4c46cb7198ec0b9634809d7b7a36d
-    (if (version< emacs-version "27.2")
-        (fit-frame-to-buffer
-         posframe height min-height width min-width)
-      (fit-frame-to-buffer-1
-       posframe height min-height width min-width nil nil nil))))
+    (if (functionp 'fit-frame-to-buffer-1)
+        (fit-frame-to-buffer-1
+         posframe height min-height width min-width nil nil nil)
+      (fit-frame-to-buffer
+       posframe height min-height width min-width))))
 
 (defun posframe--set-frame-size (posframe height min-height width min-width)
   "Set POSFRAME's size.
@@ -965,19 +985,21 @@ of `posframe-show'."
     (cons (+ (car position) x-pixel-offset)
           (+ (cdr position) y-pixel-offset))))
 
-(defun posframe-poshandler-point-bottom-left-corner (info &optional font-height upward)
+(defun posframe-poshandler-point-bottom-left-corner (info &optional font-height upward centering)
   "Posframe's position hanlder.
 
 Get bottom-left-corner pixel position of a point,
 the structure of INFO can be found in docstring
 of `posframe-show'.
 
-Optional argument FONT-HEIGHT ."
+Optional argument FONT-HEIGHT, UPWARD, CENTERING ."
   (let* ((x-pixel-offset (plist-get info :x-pixel-offset))
          (y-pixel-offset (plist-get info :y-pixel-offset))
          (posframe-width (plist-get info :posframe-width))
          (posframe-height (plist-get info :posframe-height))
          (window (plist-get info :parent-window))
+         (window-left (plist-get info :parent-window-left))
+         (window-width (plist-get info :parent-window-width))
          (xmax (plist-get info :parent-frame-width))
          (ymax (plist-get info :parent-frame-height))
          (position-info (plist-get info :position-info))
@@ -997,12 +1019,23 @@ Optional argument FONT-HEIGHT ."
                    y-pixel-offset))
          (font-height (or font-height (plist-get info :font-height)))
          (y-bottom (+ y-top font-height)))
-    (cons (max 0 (min x (- xmax (or posframe-width 0))))
+    (cons (if centering
+              (+ window-left (/ (- window-width posframe-width) 2))
+            (max 0 (min x (- xmax (or posframe-width 0)))))
           (max 0 (if (if upward
                          (> (- y-bottom (or posframe-height 0)) 0)
                        (> (+ y-bottom (or posframe-height 0)) ymax))
                      (- y-top (or posframe-height 0))
                    y-bottom)))))
+
+(defun posframe-poshandler-point-window-center (info)
+  "Posframe's position hanlder.
+
+Get a position of a point, by which a window-centered posframe
+can be put below it, the structure of INFO can be found in
+docstring of `posframe-show'. "
+
+  (posframe-poshandler-point-bottom-left-corner info nil nil t))
 
 (defun posframe-poshandler-point-bottom-left-corner-upward (info)
   "Posframe's position hanlder.
