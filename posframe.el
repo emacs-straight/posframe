@@ -5,7 +5,7 @@
 ;; Author: Feng Shu <tumashu@163.com>
 ;; Maintainer: Feng Shu <tumashu@163.com>
 ;; URL: https://github.com/tumashu/posframe
-;; Version: 0.8.5
+;; Version: 0.8.6
 ;; Keywords: convenience, tooltip
 ;; Package-Requires: ((emacs "26"))
 
@@ -356,7 +356,11 @@ This posframe's buffer is BUFFER-OR-NAME."
                        (desktop-dont-save . t))))
         (when border-color
           (set-face-background 'internal-border border-color posframe--frame)
-          (set-face-background 'child-frame-border border-color posframe--frame))
+          ;; FIXME: ignore errors on emacs version which
+          ;; have no child-frame-border face.
+          ;; maybe have other better way to do this job.
+          (ignore-errors
+            (set-face-background 'child-frame-border border-color posframe--frame)))
         (let ((posframe-window (frame-root-window posframe--frame)))
           ;; This method is more stable than 'setq mode/header-line-format nil'
           (unless respect-mode-line
