@@ -5,7 +5,7 @@
 ;; Author: Feng Shu <tumashu@163.com>
 ;; Maintainer: Feng Shu <tumashu@163.com>
 ;; URL: https://github.com/tumashu/posframe
-;; Version: 0.8.6
+;; Version: 0.8.7
 ;; Keywords: convenience, tooltip
 ;; Package-Requires: ((emacs "26"))
 
@@ -629,6 +629,8 @@ You can use `posframe-delete-all' to delete all posframes."
 
       ;; Remove tab-bar always.
       (set-frame-parameter posframe 'tab-bar-lines 0)
+      (when (version< "27.0" emacs-version)
+        (setq-local tab-line-format nil))
 
       ;; Move mouse to (0 . 0)
       (posframe--mouse-banish parent-frame posframe)
