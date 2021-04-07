@@ -323,6 +323,7 @@ This posframe's buffer is BUFFER-OR-NAME."
                           (cons 'background-color background-color))
                        ,(when font
                           (cons 'font font))
+                       (title . "posframe")
                        (parent-frame . ,(or parent-frame (window-frame)))
                        (keep-ratio ,keep-ratio)
                        (posframe-buffer . ,(cons (buffer-name buffer)
@@ -351,6 +352,7 @@ This posframe's buffer is BUFFER-OR-NAME."
                        (width . 1)
                        (height . 1)
                        (no-special-glyphs . t)
+                       (skip-taskbar . t)
                        (inhibit-double-buffering . ,posframe-inhibit-double-buffering)
                        ;; Do not save child-frame when use desktop.el
                        (desktop-dont-save . t))))
@@ -366,6 +368,10 @@ This posframe's buffer is BUFFER-OR-NAME."
             (set-window-parameter posframe-window 'header-line-format 'none))
           (set-window-buffer posframe-window buffer)
           (set-window-dedicated-p posframe-window t)))
+      ;; If user set 'parent-frame to nil after run posframe-show.
+      ;; for cache reason, next call to posframe-show will be affected.
+      ;; so we should force set parent-frame again in this place.
+      (set-frame-parameter posframe--frame 'parent-frame parent-frame)
       posframe--frame)))
 
 (defun posframe-arghandler-default (_buffer-or-name _arg-name value)
