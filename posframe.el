@@ -1091,6 +1091,7 @@ of `posframe-show'."
                                           &key
                                           position
                                           poshandler
+                                          refposhandler
                                           x-pixel-offset
                                           y-pixel-offset)
   "Return a info list of CHILD-FRAME, which can be used as poshandler's info argument.
@@ -1130,7 +1131,11 @@ poshandler easily used for other purposes."
          (header-line-height (window-header-line-height parent-window))
          (tab-line-height (if (functionp 'window-tab-line-height)
                               (window-tab-line-height parent-window)
-                            0)))
+                            0))
+         (ref-position
+          (when (functionp refposhandler)
+            (ignore-errors
+              (funcall refposhandler parent-frame)))))
     (list :position position
           :position-info position-info
           :poshandler poshandler
@@ -1143,6 +1148,7 @@ poshandler easily used for other purposes."
           :parent-frame parent-frame
           :parent-frame-width parent-frame-width
           :parent-frame-height parent-frame-height
+          :ref-position ref-position
           :parent-window parent-window
           :parent-window-top parent-window-top
           :parent-window-left parent-window-left
@@ -1422,13 +1428,10 @@ Get the position of parent frame (current frame) with the help of
 xwininfo."
   (when (executable-find "xwininfo")
     (with-temp-buffer
-      (let ((case-fold-search nil)
-            (args (format "xwininfo -display %s -id %s"
-		          (frame-parameter frame 'display)
-		          (frame-parameter frame 'window-id))))
-        ;; FIXME: how to call xwininfo successfully with call-process
-        ;; without the help of shell?
-        (call-process shell-file-name nil t nil shell-command-switch args)
+      (let ((case-fold-search nil))
+        (call-process "xwininfo" nil t nil
+                      "-display" (frame-parameter frame 'display)
+                      "-id"  (frame-parameter frame 'window-id))
         (goto-char (point-min))
         (search-forward "Absolute upper-left")
         (let ((x (string-to-number
