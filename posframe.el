@@ -145,7 +145,11 @@
   :prefix "posframe-")
 
 (defcustom posframe-mouse-banish (not (eq system-type 'darwin))
-  "Mouse will be moved to (0 , 0) when it is non-nil.
+  "Mouse banish.
+
+when this variable is t, mouse will be moved to (0 , 0).
+when this variable is a cons like (x . y), mouse will be moved
+to (x , y).
 
 This option is used to solve the problem of child frame getting
 focus, with the help of `posframe--redirect-posframe-focus',
@@ -492,6 +496,9 @@ exist key in 'info'.
 This posframe's buffer is BUFFER-OR-NAME, which can be a buffer
 or a name of a (possibly nonexistent) buffer.
 
+buffer name can prefix with space, for example ' *mybuffer*', so
+the buffer name will hide for ibuffer and list-buffers.
+
 (5) NO-PROPERTIES
 
 If NO-PROPERTIES is non-nil, The STRING's properties will
@@ -799,12 +806,16 @@ is non-nil.
 
 FIXME: This is a hacky fix for the mouse focus problem, which like:
 https://github.com/tumashu/posframe/issues/4#issuecomment-357514918"
-  (when (and posframe-mouse-banish
-             ;; Do not banish mouse when posframe can accept focus.
-             ;; See posframe-show's accept-focus argument.
-             (frame-parameter posframe 'no-accept-focus)
-             (not (equal (cdr (mouse-position)) '(0 . 0))))
-    (set-mouse-position parent-frame 0 0)))
+  (let ((x-y (pcase posframe-mouse-banish
+               (`(,x . ,y) (cons x y))
+               ('nil nil)
+               (_ '(0 . 0)))))
+    (when (and x-y
+               ;; Do not banish mouse when posframe can accept focus.
+               ;; See posframe-show's accept-focus argument.
+               (frame-parameter posframe 'no-accept-focus)
+               (not (equal (cdr (mouse-position)) (cons (car x-y) (cdr x-y)))))
+      (set-mouse-position parent-frame (car x-y) (cdr x-y)))))
 
 (defun posframe--insert-string (string no-properties)
   "Insert STRING to current buffer.
@@ -972,7 +983,10 @@ Note: This function is called in `post-command-hook'."
 
 (defun posframe-delete (buffer-or-name)
   "Delete posframe pertaining to BUFFER-OR-NAME and kill the buffer.
-BUFFER-OR-NAME can be a buffer or a buffer name."
+BUFFER-OR-NAME can be a buffer or a buffer name.
+
+This function is not commonly used, for delete and recreate
+posframe is very very slowly, `posframe-hide' is more useful."
   (posframe-delete-frame buffer-or-name)
   (posframe--kill-buffer buffer-or-name))
 
@@ -1412,6 +1426,8 @@ xwininfo."
             (args (format "xwininfo -display %s -id %s"
 		          (frame-parameter frame 'display)
 		          (frame-parameter frame 'window-id))))
+        ;; FIXME: how to call xwininfo successfully with call-process
+        ;; without the help of shell?
         (call-process shell-file-name nil t nil shell-command-switch args)
         (goto-char (point-min))
         (search-forward "Absolute upper-left")
