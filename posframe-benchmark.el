@@ -54,12 +54,19 @@
       (frame-parameter
        (frame-parameter (window-frame) 'no-accept-focus))
       (set-mouse-position
-       (set-mouse-position (window-frame) 0 0)))))
+       (set-mouse-position (window-frame) 0 0))
+      (posn-at-point
+       (posn-at-point))
+      (set-frame-parameter
+       (set-frame-parameter (window-frame) 'test 1))
+      (raise-frame
+       (raise-frame (window-frame))))))
 
+;;;###autoload
 (defun posframe-benchmark ()
   "Benchmark tool for posframe."
   (interactive)
-  (let ((n 10000))
+  (let ((n 1000))
     (message "\n* Posframe Benchmark")
     (dolist (x posframe-benchmark-alist)
       (message "\n** Benchmark `%S' %s times ..." (car x) n)
