@@ -174,7 +174,9 @@ This posframe's buffer is BUFFER-OR-NAME."
                     right-fringe
                     left-fringe
                     border-width
+                    border-color
                     internal-border-width
+                    internal-border-color
                     font
                     keep-ratio
                     override-parameters
@@ -1030,20 +1032,19 @@ documents of POSITION, POSHANDLER, X-PIXEL-OFFSET and
 Y-PIXEL-OFFSET can be found in dostring of `posframe-show'.
 
 NOTE: this function is not used by posframe itself, it just let
-poshandler easily used for other purposes."
+poshandler easily used for other purposes.
+
+WARN: In some situation, this function will return wrong info,
+user should manual adjust returned info before use in poshandler
+function."
   (let* ((position (or position (point)))
          (frame-width (or (and child-frame (frame-pixel-width child-frame)) 0))
          (frame-height (or (and child-frame (frame-pixel-height child-frame)) 0))
          (frame-buffer (and child-frame (window-buffer (frame-root-window child-frame))))
-         (parent-frame (if child-frame
-                           (frame-parent child-frame)
-                         (selected-frame)))
+         (parent-frame (selected-frame))
          (parent-frame-width (frame-pixel-width parent-frame))
          (parent-frame-height (frame-pixel-height parent-frame))
-         (parent-window
-          (if child-frame
-              (frame-root-window parent-frame)
-            (selected-window)))
+         (parent-window (selected-window))
          (parent-window-top (window-pixel-top parent-window))
          (parent-window-left (window-pixel-left parent-window))
          (parent-window-width (window-pixel-width parent-window))
@@ -1272,8 +1273,8 @@ of INFO can be found in docstring of `posframe-show'."
          (window-height (plist-get info :parent-window-height))
          (posframe-width (plist-get info :posframe-width))
          (posframe-height (plist-get info :posframe-height)))
-    (cons (+ window-left (/ (- window-width posframe-width) 2))
-          (+ window-top (/ (- window-height posframe-height) 2)))))
+    (cons (max 0 (+ window-left (/ (- window-width posframe-width) 2)))
+          (max 0 (+ window-top (/ (- window-height posframe-height) 2))))))
 
 (defalias 'posframe-poshandler-window-top-left-corner #'posframe-poshandler-p0p0-to-w0w0)
 (defun posframe-poshandler-p0p0-to-w0w0 (info)
@@ -1310,7 +1311,7 @@ INFO can be found in docstring of `posframe-show'."
          (window-top (plist-get info :parent-window-top))
          (window-width (plist-get info :parent-window-width))
          (posframe-width (plist-get info :posframe-width)))
-    (cons (+ window-left (/ (- window-width posframe-width) 2))
+    (cons (max 0 (+ window-left (/ (- window-width posframe-width) 2)))
           window-top)))
 
 (defalias 'posframe-poshandler-window-bottom-left-corner #'posframe-poshandler-p0p1-to-w0w1)
@@ -1359,7 +1360,7 @@ INFO can be found in docstring of `posframe-show'."
          (posframe-width (plist-get info :posframe-width))
          (posframe-height (plist-get info :posframe-height))
          (mode-line-height (plist-get info :mode-line-height)))
-    (cons (+ window-left (/ (- window-width posframe-width) 2))
+    (cons (max 0 (+ window-left (/ (- window-width posframe-width) 2)))
           (+ window-top window-height
              (- 0 mode-line-height posframe-height)))))
 
