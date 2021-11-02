@@ -91,24 +91,7 @@ Note: this command will delete all posframe buffers.
 You probably shouldn't use it if you are sharing a buffer
 between posframe and other packages.
 
-** Customizing mouse pointer control
+** posframe-arghandler
 
-By default, posframe moves the pointer to point (0,0) in
-the frame, as a way to address an issue with mouse focus.
-To disable this feature, add this to your init.el:
-#+begin_example
-(setq posframe-mouse-banish nil)
-#+end_example
-
-** Set fallback arguments of posframe-show
-
-Users can set fallback values of posframe-show's arguments with the
-help of `posframe-arghandler'.  The example below sets fallback
-border-width to 10 and fallback background color to green.
-
-#+begin_example
-(setq posframe-arghandler #'my-posframe-arghandler)
-(defun my-posframe-arghandler (buffer-or-name arg-name value)
-  (let ((info '(:internal-border-width 10 :background-color "green")))
-    (or (plist-get info arg-name) value)))
-#+end_example
+posframe-arghandler feature has been removed from posframe-1.1, 
+user can use advice feature instead.
