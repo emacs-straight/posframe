@@ -178,6 +178,7 @@ ACCEPT-FOCUS."
       (setq-local left-fringe-width nil)
       (setq-local right-fringe-width nil)
       (setq-local fringes-outside-margins 0)
+      (setq-local fringe-indicator-alist nil)
       ;; Need to use `lines-truncate' as our keyword variable instead of
       ;; `truncate-lines' so we don't shadow the variable that we are trying to
       ;; set.
@@ -288,6 +289,8 @@ ACCEPT-FOCUS."
                          poshandler-extra-info
                          width
                          height
+                         max-width
+                         max-height
                          min-width
                          min-height
                          x-pixel-offset
@@ -429,13 +432,11 @@ the buffer name will hide for ibuffer and `list-buffers'.
 If NO-PROPERTIES is non-nil, The STRING's properties will
 be removed before being shown in posframe.
 
- (6) WIDTH, MIN-WIDTH, HEIGHT and MIN-HEIGHT
+ (6) HEIGHT, MAX-HEIGHT, MIN-HEIGHT, WIDTH, MAX-WIDTH and MIN-WIDTH
 
-WIDTH, MIN-WIDTH, HEIGHT and MIN-HEIGHT, specify bounds on the
-new total size of posframe.  MIN-HEIGHT and MIN-WIDTH default to
-the values of ‘window-min-height’ and ‘window-min-width’
-respectively.  These arguments are specified in the canonical
-character width and height of posframe.
+These arguments are specified in the canonical character width
+and height of posframe, more details can be found in docstring of
+`fit-frame-to-buffer',
 
  (7) LEFT-FRINGE and RIGHT-FRINGE
 
@@ -482,8 +483,11 @@ posframe instead of wrap.
 
  (13) OVERRIDE-PARAMETERS
 
-OVERRIDE-PARAMETERS is very powful, *all* the frame parameters
+OVERRIDE-PARAMETERS is very powful, *all* the valid frame parameters
 used by posframe's frame can be overridden by it.
+
+NOTE: some posframe-show arguments are not frame parameters, so they
+can not be overrided by this argument.
 
  (14) TIMEOUT
 
@@ -535,8 +539,18 @@ An example parent frame poshandler function is:
 
 You can use `posframe-delete-all' to delete all posframes."
   (let* ((position (or position (point)))
-         (min-width (or min-width 1))
-         (min-height (or min-height 1))
+         (max-width (if (numberp max-width)
+                        (min max-width (frame-width))
+                      (frame-width)))
+         (max-height (if (numberp max-height)
+                         (min max-height (frame-height))
+                       (frame-height)))
+         (min-width (min (or min-width 1) max-width))
+         (min-height (min (or min-height 1) max-height))
+         (width (when width
+                  (min (max width min-width) max-width)))
+         (height (when height
+                   (min (max height min-height) max-height)))
          (x-pixel-offset (or x-pixel-offset 0))
          (y-pixel-offset (or y-pixel-offset 0))
          ;;-----------------------------------------------------
@@ -603,7 +617,7 @@ You can use `posframe-delete-all' to delete all posframes."
 
       ;; Set posframe's size
       (posframe--set-frame-size
-       posframe height min-height width min-width)
+       posframe height max-height min-height width max-width min-width)
 
       ;; Get new position of posframe.
       (setq position
@@ -645,7 +659,7 @@ You can use `posframe-delete-all' to delete all posframes."
 
       ;; Re-adjust posframe's size when buffer's content has changed.
       (posframe--run-refresh-timer
-       posframe refresh height min-height width min-width)
+       posframe refresh height max-height min-height width max-width min-width)
 
       ;; Make sure not hide buffer's content for scroll down.
       (let ((window (frame-root-window posframe--frame)))
@@ -758,7 +772,7 @@ will be removed."
       (erase-buffer)
       (insert str))))
 
-(defun posframe--fit-frame-to-buffer (posframe height min-height width min-width)
+(defun posframe--fit-frame-to-buffer (posframe max-height min-height max-width min-width only)
   "POSFRAME version of function `fit-frame-to-buffer'.
 Arguments HEIGHT, MIN-HEIGHT, WIDTH, MIN-WIDTH are similar
 function `fit-frame-to-buffer''s."
@@ -768,18 +782,23 @@ function `fit-frame-to-buffer''s."
     ;; http://git.savannah.gnu.org/cgit/emacs.git/commit/?id=e0de9f3295b4c46cb7198ec0b9634809d7b7a36d
     (if (functionp 'fit-frame-to-buffer-1)
         (fit-frame-to-buffer-1
-         posframe height min-height width min-width nil nil nil)
+         posframe max-height min-height max-width min-width only nil nil)
       (fit-frame-to-buffer
-       posframe height min-height width min-width))))
+       posframe max-height min-height max-width min-width only))))
 
-(defun posframe--set-frame-size (posframe height min-height width min-width)
+(defun posframe--set-frame-size (posframe height max-height min-height width max-width min-width)
   "Set POSFRAME's size.
 It will set the size by the POSFRAME's HEIGHT, MIN-HEIGHT
 WIDTH and MIN-WIDTH."
-  (posframe--fit-frame-to-buffer
-   posframe height min-height width min-width)
+  (when height (set-frame-height posframe height))
+  (when width (set-frame-width posframe width))
+  (unless (and height width)
+    (posframe--fit-frame-to-buffer
+     posframe max-height min-height max-width min-width
+     (cond (width 'vertically)
+           (height 'horizontally))))
   (setq-local posframe--last-posframe-size
-              (list height min-height width min-width)))
+              (list height max-height min-height width max-width min-width)))
 
 (defun posframe--set-frame-position (posframe position
                                               parent-frame-width
@@ -821,13 +840,18 @@ This need PARENT-FRAME-WIDTH and PARENT-FRAME-HEIGHT"
   (when (frame-live-p frame)
     (make-frame-invisible frame)))
 
-(defun posframe--run-refresh-timer (posframe repeat
-                                             height min-height
-                                             width min-width)
+(defun posframe--run-refresh-timer (posframe
+                                    repeat
+                                    height
+                                    max-height
+                                    min-height
+                                    width
+                                    max-width
+                                    min-width)
   "Refresh POSFRAME every REPEAT seconds.
 
-It will set POSFRAME's size by the posframe's HEIGHT, MIN-HEIGHT,
-WIDTH and MIN-WIDTH."
+It will set POSFRAME's size by the posframe's HEIGHT, MAX-HEIGHT, MIN-HEIGHT,
+WIDTH MAX-WIDTH and MIN-WIDTH."
   (when (and (numberp repeat) (> repeat 0))
     (unless (and width height)
       (when (timerp posframe--refresh-timer)
@@ -835,12 +859,12 @@ WIDTH and MIN-WIDTH."
       (setq-local posframe--refresh-timer
                   (run-with-timer
                    nil repeat
-                   #'(lambda (frame height min-height width min-width)
-                       (let ((frame-resize-pixelwise t))
-                         (when (and frame (frame-live-p frame))
-                           (posframe--fit-frame-to-buffer
-                            frame height min-height width min-width))))
-                   posframe height min-height width min-width)))))
+                   (lambda (frame height max-height min-height width max-width min-width)
+                     (let ((frame-resize-pixelwise t))
+                       (when (and frame (frame-live-p frame))
+                         (posframe--set-frame-size
+                          frame height max-height min-height width max-width min-width))))
+                   posframe height max-height min-height width max-width min-width)))))
 
 (defun posframe-refresh (buffer-or-name)
   "Refresh posframe pertaining to BUFFER-OR-NAME.
@@ -870,7 +894,7 @@ to do similar job:
       (when (or (equal buffer-or-name (car buffer-info))
                 (equal buffer-or-name (cdr buffer-info)))
         (with-current-buffer buffer-or-name
-          (apply #'posframe--fit-frame-to-buffer
+          (apply #'posframe--set-frame-size
                  frame posframe--last-posframe-size))))))
 
 (defun posframe-hide (buffer-or-name)
