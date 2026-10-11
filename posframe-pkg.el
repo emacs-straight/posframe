@@ -1,2 +1,2 @@
 ;; Generated package description from posframe.el  -*- no-byte-compile: t; lexical-binding:t -*-
-(define-package "posframe" "1.5.2.0.20261008.12" "Pop a posframe (just a frame) at point" '((emacs "26.1")) :commit "45450ee132d060d297550b7c43f3d72ba77df3c7" :authors '(("Feng Shu" . "tumashu@163.com")) :maintainer '("Feng Shu" . "tumashu@163.com") :keywords '("convenience" "tooltip") :url "https://github.com/tumashu/posframe")
+(define-package "posframe" "1.5.3.0.20261010.0" "Pop a posframe (just a frame) at point" '((emacs "26.1")) :commit "1d833af5c43313e401be2e5c456bf03d4ce9519c" :authors '(("Feng Shu" . "tumashu@163.com")) :maintainer '("Feng Shu" . "tumashu@163.com") :keywords '("convenience" "tooltip") :url "https://github.com/tumashu/posframe")
